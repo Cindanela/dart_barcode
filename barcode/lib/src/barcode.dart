@@ -103,8 +103,6 @@ abstract class Barcode {
         return Barcode.dataMatrix();
       case BarcodeType.Aztec:
         return Barcode.aztec();
-      default:
-        throw UnimplementedError('Barcode $type not supported');
     }
   }
 
