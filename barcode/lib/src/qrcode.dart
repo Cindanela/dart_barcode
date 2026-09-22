@@ -19,6 +19,7 @@ import 'dart:typed_data';
 import 'package:qr/qr.dart';
 
 import 'barcode_2d.dart';
+import 'barcode_exception.dart';
 
 /// QR Code Correction Level
 enum BarcodeQRCorrectionLevel {
@@ -35,6 +36,15 @@ enum BarcodeQRCorrectionLevel {
   high,
 }
 
+/// The `package:qr` error correction levels, in the same order as
+/// [BarcodeQRCorrectionLevel].
+const List<QrErrorCorrectLevel> _qrErrorCorrectLevels = [
+  QrErrorCorrectLevel.low,
+  QrErrorCorrectLevel.medium,
+  QrErrorCorrectLevel.quartile,
+  QrErrorCorrectLevel.high,
+];
+
 /// QR Code
 ///
 /// QR code (abbreviated from Quick Response code) is the trademark for a
@@ -42,10 +52,8 @@ enum BarcodeQRCorrectionLevel {
 /// for the automotive industry in Japan.
 class BarcodeQR extends Barcode2D {
   /// Create a [BarcodeQR] object
-  const BarcodeQR(
-    this.typeNumber,
-    this.errorCorrectLevel,
-  ) : assert(typeNumber == null || (typeNumber >= 1 && typeNumber <= 40));
+  const BarcodeQR(this.typeNumber, this.errorCorrectLevel)
+    : assert(typeNumber == null || (typeNumber >= 1 && typeNumber <= 40));
 
   /// QR code version number 1 to 40
   final int? typeNumber;
@@ -55,12 +63,16 @@ class BarcodeQR extends Barcode2D {
 
   @override
   Barcode2DMatrix convert(Uint8List data) {
-    final errorLevel = QrErrorCorrectLevel.levels[errorCorrectLevel.index];
+    final errorLevel = _qrErrorCorrectLevels[errorCorrectLevel.index];
+    final qrCode = QrCode(
+      payload: QrPayload.fromTypedData(data),
+      errorCorrectLevel: errorLevel,
+      minTypeNumber: typeNumber ?? 1,
+    );
 
-    final qrCode = typeNumber == null
-        ? QrCode.fromUint8List(data: data, errorCorrectLevel: errorLevel)
-        : (QrCode(typeNumber!, errorLevel)
-          ..addByteData(data.buffer.asByteData()));
+    if (typeNumber != null && qrCode.typeNumber != typeNumber) {
+      throw BarcodeException('Data too large for QR code version $typeNumber');
+    }
 
     final qrImage = QrImage(qrCode);
 
